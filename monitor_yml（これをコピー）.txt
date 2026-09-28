@@ -1,0 +1,40 @@
+name: DOPAガチャ監視
+
+on:
+  schedule:
+    # 15分ごとに巡回 (UTC表記: JSTではないことに注意)
+    # GitHubのスケジュール実行は混雑時に数分〜十数分遅れることがあります
+    - cron: "*/15 * * * *"
+  workflow_dispatch: # 手動テスト実行用
+
+permissions:
+  contents: write # state.jsonの保存に必要
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Playwrightのインストール
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: 巡回実行
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DOPA_DISCORD_WEBHOOK }}
+          KEYWORDS: ${{ vars.DOPA_KEYWORDS }}
+        run: python monitor_gh.py
+
+      - name: 状態を保存(差分検知用)
+        run: |
+          git config user.name "dopa-monitor"
+          git config user.email "actions@users.noreply.github.com"
+          git add state.json page_dump.txt
+          git commit -m "update state $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "変化なし"
+          git push
