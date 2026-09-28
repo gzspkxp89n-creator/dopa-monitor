@@ -38,6 +38,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add state.json
-          git diff --cached --quiet || git commit -m "chore: 監視状態を更新"
-          git pull --rebase || true
-          git push
+          if git diff --cached --quiet; then
+            echo "変化なし"
+            exit 0
+          fi
+          git commit -m "chore: 監視状態を更新"
+          git pull --rebase || git rebase --abort || true
+          git push || echo "::warning:: 状態の保存に失敗（通知は済んでいます。次回に持ち越します）"
