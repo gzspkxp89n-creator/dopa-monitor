@@ -130,7 +130,12 @@ def fetch_banners():
 def load_state():
     try:
         with open(STATE_FILE, encoding="utf-8") as f:
-            return json.load(f)
+            s = json.load(f)
+        if "packs" not in s or "initialized" not in s:
+            raise ValueError("古い形式")  # 旧バージョンのstate.jsonは初期化扱い
+        s.setdefault("banners", [])
+        s.setdefault("thresholds", {})
+        return s
     except Exception:
         return {"packs": {}, "banners": [], "thresholds": {}, "initialized": False}
 
